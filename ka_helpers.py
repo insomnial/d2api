@@ -33,8 +33,6 @@ def hitToPrettyString( dict ):
         " | " + str(dict.get('bungieNetMembershipId', '')) + " == " + \
         "\n"
 
-    "{0:0>4}".format(dict.get('bungieGlobalDisplayNameCode', 0))
-
     #find primary account if it exists
     primaryAcctType = dict.get('primary', 0)
     if primaryAcctType != 0:
@@ -88,3 +86,7 @@ def hitToSimpleString( dict ):
         returnMe += accountToSimpleString(accounts[account])
 
     return returnMe + '\n'
+
+def debugPrint( DEBUG, input ):
+    if DEBUG:
+        print( input )

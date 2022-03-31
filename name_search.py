@@ -3,9 +3,13 @@ from re import search
 import requests
 import argparse
 import ka_helpers
+import queue
 
 #username request URL
-usernameRequest = "/User/Search/GlobalName/0"
+usernameRequest = "/User/Search/GlobalName/"
+
+#set to enable debug logging
+DEBUG = False
 
 def postRequest( searchString ):
     """
@@ -22,14 +26,29 @@ def postRequest( searchString ):
     #make url string
     requestString = ka_helpers.ROOTPATH + usernameRequest
 
-    #make request 
-    r = requests.post(requestString, headers=ka_helpers.HEADERS, json=body)
+    #create queue to store results in json format
+    resultQueue = queue.SimpleQueue()
 
-    #convert the json object we received into a Python dictionary object
-    result = r.json()
-
+    #need to add all pages, not just 0 to a queue to process
+    lastPage = False
+    pageIndex = 0
+    while not lastPage:
+        ka_helpers.debugPrint(DEBUG, 'searching page ' + str(pageIndex))
+        #make request 
+        r = requests.post(requestString + str(pageIndex), headers=ka_helpers.HEADERS, json=body)
+        #convert the json object we received into a Python dictionary object
+        result = r.json()
+        if result.get('ErrorCode', 0) == 1:
+            #normal result add to queue
+            ka_helpers.debugPrint(DEBUG, 'adding page ' + str(pageIndex) + ' to queue')
+            resultQueue.put(result)
+            pageIndex += 1
+        else:
+            ka_helpers.debugPrint(DEBUG, 'no more pages')
+            lastPage = True
+    
     #return the results
-    return result
+    return resultQueue
 
 
 def processResult( result, nameCode, cliRequest ):
@@ -102,9 +121,15 @@ def internal_search( search, nameCode = 0, cliRequest = False ):
       RETURNS a string of the search results
     """
 
-    result = postRequest( search )
+    resultQueue = postRequest( search )
 
-    return processResult( result, nameCode, cliRequest )
+    processResultString = ''
+
+    #move through queue and process results
+    while not resultQueue.empty():
+        processResultString += processResult(resultQueue.get(), nameCode, cliRequest)
+
+    return processResultString
 
 
 # Main method to search via CLI
@@ -135,7 +160,7 @@ def main():
     if args.id != None:
         nameCode = args.id[0]
 
-    result = internal_search( searchString, nameCode )
+    result = internal_search( searchString, nameCode, True )
 
     print(ka_helpers.htmlFormatter(result))
 
