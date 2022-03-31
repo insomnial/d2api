@@ -1,5 +1,6 @@
 import discord
 import name_search
+import os
 
 client = discord.Client()
 
@@ -38,4 +39,4 @@ async def on_message(message):
             await message.channel.send('bad input')
         
 
-client.run('OTU4ODQ1MTYzNTI5MTkxNTE0.YkTQJQ.ZiKS2FSkQ9yQtzgFY2PrRqCmw2Q') #bot token
+client.run(os.getenv('DISCORD_BOT_TOKEN')) #bot token
